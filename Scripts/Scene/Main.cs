@@ -17,6 +17,8 @@ public partial class Main : Node3D
 
     public override void _Ready()
     {
+        AddChild(new HintOverlay());
+
         if (SceneGeometryRoot == null)
         {
             GD.PushError("Main: Assign SceneGeometryRoot in the Inspector!");
