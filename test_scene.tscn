@@ -1,0 +1,63 @@
+[gd_scene format=3 uid="uid://dlcrfr3fyu2oa"]
+
+[ext_resource type="Script" uid="uid://cqtyymv6dqlls" path="res://Scripts/Scene/Main.cs" id="1_uhqqe"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_6adnx"]
+sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+
+[sub_resource type="Sky" id="Sky_uhqqe"]
+sky_material = SubResource("ProceduralSkyMaterial_6adnx")
+
+[sub_resource type="Environment" id="Environment_ia1lp"]
+background_mode = 2
+sky = SubResource("Sky_uhqqe")
+glow_enabled = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_wc2o2"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_3j7ag"]
+radial_segments = 16
+rings = 8
+
+[sub_resource type="TorusMesh" id="TorusMesh_1k587"]
+rings = 16
+ring_segments = 8
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_wc2o2"]
+radial_segments = 16
+rings = 2
+
+[node name="TestScene" type="Node3D" unique_id=1666699793 node_paths=PackedStringArray("SceneGeometryRoot")]
+script = ExtResource("1_uhqqe")
+SceneGeometryRoot = NodePath("SceneGeometry")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=776752928]
+environment = SubResource("Environment_ia1lp")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=2126642904]
+transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=304728156]
+transform = Transform3D(-0.9986303, 0.02436186, -0.046304263, 0, 0.8849876, 0.46561465, 0.052321937, 0.46497688, -0.8837754, 0.5900468, 3.9382992, -7.5472984)
+
+[node name="SceneGeometry" type="Node3D" parent="." unique_id=1092522046]
+
+[node name="BoxMesh" type="MeshInstance3D" parent="SceneGeometry" unique_id=57257734]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.4061875, -7.1525574e-07, -1.2520919)
+mesh = SubResource("BoxMesh_wc2o2")
+
+[node name="SphereMesh" type="MeshInstance3D" parent="SceneGeometry" unique_id=952606446]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4617925, 2.3841858e-07, -2.539948)
+mesh = SubResource("SphereMesh_3j7ag")
+
+[node name="TorusMesh" type="MeshInstance3D" parent="SceneGeometry" unique_id=596476999]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6961782, 2.1457672e-06, 1.4421206)
+mesh = SubResource("TorusMesh_1k587")
+
+[node name="CylinderMesh" type="MeshInstance3D" parent="SceneGeometry" unique_id=2106769819]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.3724685, 0, 2.9578125)
+mesh = SubResource("CylinderMesh_wc2o2")
+
+[node name="Visualization" type="Node3D" parent="." unique_id=51223122]
