@@ -6,11 +6,10 @@ public partial class FlyCamera : Camera3D
 {
     [Export] public float MoveSpeed { get; set; } = 5.0f;
     [Export] public float SprintMultiplier { get; set; } = 3.0f;
-    [Export] public float MouseSensitivity { get; set; } = 0.002f; // radians per pixel
+    [Export] public float MouseSensitivity { get; set; } = 0.002f;
     [Export] public float MinSpeed { get; set; } = 0.5f;
     [Export] public float MaxSpeed { get; set; } = 100.0f;
 
-    // Input actions, bound in Project Settings > Input Map.
     private static readonly StringName MoveForward = "move_forward";
     private static readonly StringName MoveBack = "move_back";
     private static readonly StringName MoveLeft = "move_left";
@@ -63,7 +62,6 @@ public partial class FlyCamera : Camera3D
 
     public override void _Process(double delta)
     {
-        // x = right, y = back (Godot cameras look along -Z).
         Vector2 planar = Input.GetVector(MoveLeft, MoveRight, MoveForward, MoveBack);
         float vertical = Input.GetAxis(MoveDown, MoveUp);
 
@@ -74,7 +72,6 @@ public partial class FlyCamera : Camera3D
         if (Input.IsActionPressed(Sprint))
             speed *= SprintMultiplier;
 
-        // Forward/right follow the view direction (incl. pitch), up/down is always world-up.
         var basis = GlobalTransform.Basis;
         Vector3 direction = basis.X * planar.X + basis.Z * planar.Y + Vector3.Up * vertical;
 
