@@ -8,7 +8,7 @@ public partial class HintOverlay : CanvasLayer
     private const float PanelPadding = 8f;
     private const int CornerRadius = 4;
 
-    [Export] public string HintText { get; set; } = "Toggle k-d tree: Enter";
+    [Export] public string HintText { get; set; } = "Toggle k-d tree: Enter\nCast ray: R";
 
     public override void _Ready()
     {

@@ -44,6 +44,10 @@ public partial class Main : Node3D
         var visualizer = new KdTreeVisualizer();
         AddChild(visualizer);
         visualizer.ShowTree(_treeRoot);
+
+        var rayCaster = new RayCaster();
+        AddChild(rayCaster);
+        rayCaster.SetTree(_treeRoot, _triangles);
     }
 
     private static void LogStats(KdTreeStats stats)
