@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://dlcrfr3fyu2oa"]
 
 [ext_resource type="Script" uid="uid://cqtyymv6dqlls" path="res://Scripts/Scene/Main.cs" id="1_uhqqe"]
+[ext_resource type="Script" path="res://Scripts/Scene/FlyCamera.cs" id="2_flycam"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_6adnx"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -41,6 +42,7 @@ shadow_enabled = true
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=304728156]
 transform = Transform3D(-0.9986303, 0.02436186, -0.046304263, 0, 0.8849876, 0.46561465, 0.052321937, 0.46497688, -0.8837754, 0.5900468, 3.9382992, -7.5472984)
+script = ExtResource("2_flycam")
 
 [node name="SceneGeometry" type="Node3D" parent="." unique_id=1092522046]
 
