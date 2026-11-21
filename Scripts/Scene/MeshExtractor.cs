@@ -5,17 +5,20 @@ using KDTreeVis.KdTree;
 
 namespace KDTreeVis.Scene;
 
+/// <summary>Extracts world-space triangles and an enclosing bounding box from a scene subtree.</summary>
 public static class MeshExtractor
 {
     private const float DegenerateAreaSqEpsilon = 1e-12f;
     private const float RootBoundsPadding = 0.001f;
 
+    /// <summary>Result of extracting visible meshes from a scene node.</summary>
     public readonly record struct ExtractionResult(
         Triangle[] Triangles,
         Aabb SceneBounds,
         int MeshCount
     );
 
+    /// <summary>Recursively collects all non-degenerate triangles under <paramref name="root"/>.</summary>
     public static ExtractionResult ExtractFromNode(Node root)
     {
         var triangles = new List<Triangle>();
@@ -26,30 +29,12 @@ public static class MeshExtractor
         if (triangles.Count == 0)
             return new ExtractionResult(Array.Empty<Triangle>(), new Aabb(), meshCount);
 
-        // Compute tight enclosing AABB around all extracted triangles
-        Vector3 min = triangles[0].Bounds.Position;
-        Vector3 max = triangles[0].Bounds.End;
-
+        Aabb sceneBounds = triangles[0].Bounds;
         for (int i = 1; i < triangles.Count; i++)
-        {
-            Vector3 triMin = triangles[i].Bounds.Position;
-            Vector3 triMax = triangles[i].Bounds.End;
+            sceneBounds = sceneBounds.Merge(triangles[i].Bounds);
 
-            min = new Vector3(
-                MathF.Min(min.X, triMin.X),
-                MathF.Min(min.Y, triMin.Y),
-                MathF.Min(min.Z, triMin.Z)
-            );
-            max = new Vector3(
-                MathF.Max(max.X, triMax.X),
-                MathF.Max(max.Y, triMax.Y),
-                MathF.Max(max.Z, triMax.Z)
-            );
-        }
-
-        // Tiny padding prevents precision misses on triangles lying flush on the root faces
-        Vector3 pad = Vector3.One * RootBoundsPadding;
-        Aabb sceneBounds = new(min - pad, (max - min) + pad * 2.0f);
+        // Tiny padding prevents precision misses on triangles lying flush on the root faces.
+        sceneBounds = sceneBounds.Grow(RootBoundsPadding);
 
         return new ExtractionResult(triangles.ToArray(), sceneBounds, meshCount);
     }
@@ -70,17 +55,15 @@ public static class MeshExtractor
                 Vector3 v1 = worldTransform * localFaces[i + 1];
                 Vector3 v2 = worldTransform * localFaces[i + 2];
 
-                // Skip degenerate (zero-area) triangles
+                // Skip degenerate (zero-area) triangles.
                 if ((v1 - v0).Cross(v2 - v0).LengthSquared() < DegenerateAreaSqEpsilon)
                     continue;
 
-                output.Add(new Triangle(output.Count, v0, v1, v2));
+                output.Add(new Triangle(v0, v1, v2));
             }
         }
 
         foreach (Node child in node.GetChildren())
-        {
             CollectRecursive(child, output, ref meshCount);
-        }
     }
 }

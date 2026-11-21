@@ -21,14 +21,13 @@ public static class KdTreeRayCaster
         if (!IntersectAabb(root.Bounds, ray, out float tMin, out float tMax))
             return false;
 
-        float bestT = float.PositiveInfinity;
-        int bestIndex = -1;
-        Traverse(root, triangles, ray, MathF.Max(tMin, 0f), tMax, ref bestT, ref bestIndex);
+        var traversal = new TraversalState(triangles, ray);
+        traversal.Traverse(root, MathF.Max(tMin, 0f), tMax);
 
-        if (bestIndex < 0)
+        if (traversal.BestIndex < 0)
             return false;
 
-        hit = new RayHit(bestIndex, bestT, ray.PointAt(bestT));
+        hit = new RayHit(traversal.BestIndex, traversal.BestT, ray.PointAt(traversal.BestT));
         return true;
     }
 
@@ -51,58 +50,77 @@ public static class KdTreeRayCaster
         return bestIndex >= 0;
     }
 
-    /// <summary>
-    /// Traverses the subtree for the ray interval [tMin, tMax] that lies inside the node's cell.
-    /// Returns true when a hit inside this interval was found, so callers can stop early.
-    /// </summary>
-    private static bool Traverse(KdTreeNode node, Triangle[] triangles, Ray ray,
-        float tMin, float tMax, ref float bestT, ref int bestIndex)
+    /// <summary>Stack-allocated traversal state so recursive calls stay concise and allocation-free.</summary>
+    private struct TraversalState
     {
-        if (node.IsLeaf)
+        private readonly Triangle[] _triangles;
+        private readonly Ray _ray;
+
+        public float BestT;
+        public int BestIndex;
+
+        public TraversalState(Triangle[] triangles, Ray ray)
         {
-            TestLeaf(node, triangles, ray, ref bestT, ref bestIndex);
-            // A triangle may span several cells, so only a hit inside this cell's interval is final.
-            return bestT <= tMax + IntervalEpsilon;
+            _triangles = triangles;
+            _ray = ray;
+            BestT = float.PositiveInfinity;
+            BestIndex = -1;
         }
 
-        int axis = node.SplitAxis;
-        float origin = ray.Origin[axis];
-        float direction = ray.Direction[axis];
-        float split = node.SplitPosition;
-
-        bool leftIsNear = origin < split || (origin == split && direction <= 0f);
-        KdTreeNode near = leftIsNear ? node.Left : node.Right;
-        KdTreeNode far = leftIsNear ? node.Right : node.Left;
-
-        // Ray runs parallel to the split plane and therefore never crosses it.
-        if (MathF.Abs(direction) < ParallelEpsilon)
-            return Traverse(near, triangles, ray, tMin, tMax, ref bestT, ref bestIndex);
-
-        float tSplit = (split - origin) / direction;
-
-        if (tSplit > tMax || tSplit < 0f)
-            return Traverse(near, triangles, ray, tMin, tMax, ref bestT, ref bestIndex);
-
-        if (tSplit < tMin)
-            return Traverse(far, triangles, ray, tMin, tMax, ref bestT, ref bestIndex);
-
-        if (Traverse(near, triangles, ray, tMin, tSplit, ref bestT, ref bestIndex))
-            return true;
-
-        return Traverse(far, triangles, ray, tSplit, tMax, ref bestT, ref bestIndex);
-    }
-
-    private static void TestLeaf(KdTreeNode leaf, Triangle[] triangles, Ray ray,
-        ref float bestT, ref int bestIndex)
-    {
-        ReadOnlySpan<int> indices = leaf.TriangleIndices;
-        for (int i = 0; i < indices.Length; i++)
+        /// <summary>
+        /// Traverses the subtree for the ray interval [tMin, tMax] inside the node's cell.
+        /// Returns true when a hit inside this interval was found, so callers can stop early.
+        /// </summary>
+        public bool Traverse(KdTreeNode node, float tMin, float tMax)
         {
-            int triangleIndex = indices[i];
-            if (IntersectTriangle(triangles[triangleIndex], ray, out float t) && t < bestT)
+            if (node.IsLeaf)
             {
-                bestT = t;
-                bestIndex = triangleIndex;
+                TestLeaf(node);
+                // A triangle may span several cells, so only a hit inside this cell's interval is final.
+                return BestT <= tMax + IntervalEpsilon;
+            }
+
+            int axis = node.SplitAxis;
+            float origin = _ray.Origin[axis];
+            float direction = _ray.Direction[axis];
+            float split = node.SplitPosition;
+
+            bool leftIsNear = origin < split || (origin == split && direction <= 0f);
+            KdTreeNode near = leftIsNear ? node.Left : node.Right;
+            KdTreeNode far = leftIsNear ? node.Right : node.Left;
+
+            // Ray runs parallel to the split plane and therefore never crosses it.
+            if (MathF.Abs(direction) < ParallelEpsilon)
+                return Traverse(near, tMin, tMax);
+
+            float tSplit = (split - origin) / direction;
+
+            // tSplit < 0 means the split plane lies behind the ray origin (ray moves away from it),
+            // and tSplit > tMax means it only crosses after leaving this cell; either way only near is hit.
+            if (tSplit > tMax || tSplit < 0f)
+                return Traverse(near, tMin, tMax);
+
+            // 0 <= tSplit < tMin means the ray already crossed the split plane before entering this cell.
+            if (tSplit < tMin)
+                return Traverse(far, tMin, tMax);
+
+            if (Traverse(near, tMin, tSplit))
+                return true;
+
+            return Traverse(far, tSplit, tMax);
+        }
+
+        private void TestLeaf(KdTreeNode leaf)
+        {
+            ReadOnlySpan<int> indices = leaf.TriangleIndices;
+            for (int i = 0; i < indices.Length; i++)
+            {
+                int triangleIndex = indices[i];
+                if (IntersectTriangle(_triangles[triangleIndex], _ray, out float t) && t < BestT)
+                {
+                    BestT = t;
+                    BestIndex = triangleIndex;
+                }
             }
         }
     }
@@ -142,7 +160,7 @@ public static class KdTreeRayCaster
         return tMax >= 0f;
     }
 
-    /// <summary>Möller-Trumbore; two-sided, so back faces are hit as well.</summary>
+    /// <summary>Möller-Trumbore intersection test (two-sided, so back faces are hit as well).</summary>
     private static bool IntersectTriangle(in Triangle triangle, Ray ray, out float t)
     {
         t = 0f;
@@ -154,6 +172,7 @@ public static class KdTreeRayCaster
         if (MathF.Abs(determinant) < DeterminantEpsilon)
             return false;
 
+        // Solve for barycentric coordinates (u, v) and ray distance t.
         float inverseDeterminant = 1f / determinant;
         Vector3 tVec = ray.Origin - triangle.V0;
         float u = tVec.Dot(pVec) * inverseDeterminant;

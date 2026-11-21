@@ -5,12 +5,10 @@ using KDTreeVis.KdTree;
 namespace KDTreeVis.Scene;
 
 /// <summary>
-/// Draws the leaf cell boundaries of a k-d tree as a wireframe overlay and toggles it via input action.
+/// Draws the leaf cell boundaries of a k-d tree as a single wireframe mesh and toggles it via input action.
 /// </summary>
 public partial class KdTreeVisualizer : MeshInstance3D
 {
-    private const int BoxCornerCount = 8;
-
     [Export] public Color LineColor { get; set; } = new(0.2f, 0.9f, 1.0f);
 
     private static readonly StringName ToggleWireframe = "toggle_kd_wireframe";
@@ -60,18 +58,45 @@ public partial class KdTreeVisualizer : MeshInstance3D
             return;
         }
 
-        // Aabb.GetEndpoint encodes the corner in the bits of its index (one bit per axis),
-        // so two corners share an edge exactly when their indices differ in a single bit.
-        for (int corner = 0; corner < BoxCornerCount; corner++)
-        {
-            for (int bit = 1; bit < BoxCornerCount; bit <<= 1)
-            {
-                if ((corner & bit) != 0)
-                    continue;
+        AddBoxEdges(node.Bounds, vertices);
+    }
 
-                vertices.Add(node.Bounds.GetEndpoint(corner));
-                vertices.Add(node.Bounds.GetEndpoint(corner | bit));
-            }
+    private static void AddBoxEdges(Aabb bounds, List<Vector3> vertices)
+    {
+        Vector3 min = bounds.Position;
+        Vector3 max = bounds.End;
+
+        Vector3 c000 = new(min.X, min.Y, min.Z);
+        Vector3 c100 = new(max.X, min.Y, min.Z);
+        Vector3 c010 = new(min.X, max.Y, min.Z);
+        Vector3 c110 = new(max.X, max.Y, min.Z);
+        Vector3 c001 = new(min.X, min.Y, max.Z);
+        Vector3 c101 = new(max.X, min.Y, max.Z);
+        Vector3 c011 = new(min.X, max.Y, max.Z);
+        Vector3 c111 = new(max.X, max.Y, max.Z);
+
+        // Bottom face
+        AddEdge(c000, c100);
+        AddEdge(c100, c101);
+        AddEdge(c101, c001);
+        AddEdge(c001, c000);
+
+        // Top face
+        AddEdge(c010, c110);
+        AddEdge(c110, c111);
+        AddEdge(c111, c011);
+        AddEdge(c011, c010);
+
+        // Vertical pillars
+        AddEdge(c000, c010);
+        AddEdge(c100, c110);
+        AddEdge(c101, c111);
+        AddEdge(c001, c011);
+
+        void AddEdge(Vector3 a, Vector3 b)
+        {
+            vertices.Add(a);
+            vertices.Add(b);
         }
     }
 }

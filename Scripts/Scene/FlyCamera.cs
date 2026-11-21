@@ -2,6 +2,7 @@ using Godot;
 
 namespace KDTreeVis.Scene;
 
+/// <summary>Free-flying 3D camera with mouse-look, WASD/QE movement, sprint, and scroll-wheel speed.</summary>
 public partial class FlyCamera : Camera3D
 {
     [Export] public float MoveSpeed { get; set; } = 5.0f;
@@ -27,11 +28,14 @@ public partial class FlyCamera : Camera3D
 
     public override void _Ready()
     {
-        foreach (var action in new[] { MoveForward, MoveBack, MoveLeft, MoveRight, MoveUp, MoveDown,
-                                       Sprint, SpeedUp, SpeedDown, CaptureMouse, ReleaseMouse })
+        foreach (StringName action in new[]
+        {
+            MoveForward, MoveBack, MoveLeft, MoveRight, MoveUp, MoveDown,
+            Sprint, SpeedUp, SpeedDown, CaptureMouse, ReleaseMouse
+        })
         {
             if (!InputMap.HasAction(action))
-                GD.PushError($"FlyCamera: Input action '{action}' is missing in the Input Map.");
+                GD.PushError($"{nameof(FlyCamera)}: Input action '{action}' is missing in the Input Map.");
         }
 
         // Start from whatever orientation the camera has in the editor.
@@ -39,6 +43,17 @@ public partial class FlyCamera : Camera3D
         _pitch = Rotation.X;
 
         Input.MouseMode = Input.MouseModeEnum.Captured;
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        // Consume the recapture click before unhandled listeners (such as ray casting) see it,
+        // regardless of node order in the scene tree.
+        if (Input.MouseMode != Input.MouseModeEnum.Captured && @event.IsActionPressed(CaptureMouse))
+        {
+            Input.MouseMode = Input.MouseModeEnum.Captured;
+            GetViewport().SetInputAsHandled();
+        }
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -50,8 +65,6 @@ public partial class FlyCamera : Camera3D
             _pitch = Mathf.Clamp(_pitch, Mathf.DegToRad(-89f), Mathf.DegToRad(89f));
             Rotation = new Vector3(_pitch, _yaw, 0f);
         }
-        else if (@event.IsActionPressed(CaptureMouse))
-            Input.MouseMode = Input.MouseModeEnum.Captured;
         else if (@event.IsActionPressed(ReleaseMouse))
             Input.MouseMode = Input.MouseModeEnum.Visible;
         else if (@event.IsActionPressed(SpeedUp))
@@ -72,7 +85,7 @@ public partial class FlyCamera : Camera3D
         if (Input.IsActionPressed(Sprint))
             speed *= SprintMultiplier;
 
-        var basis = GlobalTransform.Basis;
+        Basis basis = GlobalTransform.Basis;
         Vector3 direction = basis.X * planar.X + basis.Z * planar.Y + Vector3.Up * vertical;
 
         GlobalPosition += direction.LimitLength() * speed * (float)delta;

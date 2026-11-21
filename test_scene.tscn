@@ -1,7 +1,10 @@
 [gd_scene format=3 uid="uid://dlcrfr3fyu2oa"]
 
 [ext_resource type="Script" uid="uid://cqtyymv6dqlls" path="res://Scripts/Scene/Main.cs" id="1_uhqqe"]
-[ext_resource type="Script" path="res://Scripts/Scene/FlyCamera.cs" id="2_flycam"]
+[ext_resource type="Script" uid="uid://1sc6q8hm5orn" path="res://Scripts/Scene/FlyCamera.cs" id="2_flycam"]
+[ext_resource type="Script" uid="uid://caxlgt5o05bsn" path="res://Scripts/Scene/KdTreeVisualizer.cs" id="3_kdvis"]
+[ext_resource type="Script" uid="uid://bk2j1obksyhhs" path="res://Scripts/Scene/RayCastController.cs" id="4_raycast"]
+[ext_resource type="Script" uid="uid://6r0elp8m8jk5" path="res://Scripts/Scene/HudOverlay.cs" id="5_hud"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_6adnx"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -29,9 +32,11 @@ ring_segments = 8
 radial_segments = 16
 rings = 2
 
-[node name="TestScene" type="Node3D" unique_id=1666699793 node_paths=PackedStringArray("SceneGeometryRoot")]
+[node name="TestScene" type="Node3D" unique_id=1666699793 node_paths=PackedStringArray("SceneGeometryRoot", "Visualizer", "RayCastController")]
 script = ExtResource("1_uhqqe")
 SceneGeometryRoot = NodePath("SceneGeometry")
+Visualizer = NodePath("Visualization/KdTreeVisualizer")
+RayCastController = NodePath("Visualization/RayCastController")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=776752928]
 environment = SubResource("Environment_ia1lp")
@@ -63,3 +68,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.3724685, 0, 2.9578125)
 mesh = SubResource("CylinderMesh_wc2o2")
 
 [node name="Visualization" type="Node3D" parent="." unique_id=51223122]
+
+[node name="KdTreeVisualizer" type="MeshInstance3D" parent="Visualization" unique_id=636959496]
+script = ExtResource("3_kdvis")
+
+[node name="RayCastController" type="Node3D" parent="Visualization" unique_id=1284496521 node_paths=PackedStringArray("Hud")]
+script = ExtResource("4_raycast")
+Hud = NodePath("../../HudOverlay")
+
+[node name="HudOverlay" type="CanvasLayer" parent="." unique_id=185787516]
+script = ExtResource("5_hud")
